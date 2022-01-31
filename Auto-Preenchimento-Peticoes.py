@@ -11,76 +11,23 @@ from openpyxl import load_workbook
 import pyexcel as p
 import pyexcel_xls
 import pyexcel_xlsx
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 import os
-import time
 import glob
 import winshell
 from win32com.client import Dispatch
 from functools import partial
 import datetime
 from datetime import date
-import bisect 
-
-# oii
-root = tk.Tk()
-text = tk.Text(root)
-text.pack(fill='both', expand=True)
-
-text.tag_configure('normal', font='TimesNewRoman 12')
-text.tag_configure('bold', font='TimesNewRoman 12 bold')
-text.tag_configure('center', justify='center', font='TimesNewRoman 12 bold')
-text.tag_configure('center2', justify='center', font='TimesNewRoman 12')
-text.tag_configure('justified', justify='right', font='TimesNewRoman 12')
-text.tag_configure('justified2', justify='right', font='TimesNewRoman 12 bold')
-
-TAG_TO_HTML = {
-    ('tagon', 'bold'): '<b>',
-    ('tagoff', 'bold'): '</b>',
-    ('tagon', 'center'): '<center>', 
-    ('tagoff', 'center'): '</center>', 
-    ('tagon', 'center2'): '<center>',
-    ('tagoff', 'center2'): '</center>',
-    ('tagon', 'justified'): '<p align="justify">',
-    ('tagoff', 'justified'): '</p>',
-    ('tagon', 'justified2'): '<p align="justify">',
-    ('tagoff', 'justified2'): '</p>',
-}
-
-def copy_rich_text(event):
-    try:
-        txt = text.get('sel.first', 'sel.last')
-    except tk.TclError:
-        # no selection
-        return "break"
-    content = text.dump('sel.first', 'sel.last', tag=True, text=True)
-    html_text = []
-    for key, value, index in content:
-        if key == "text":
-            html_text.append(value)
-        else:
-            html_text.append(TAG_TO_HTML.get((key, value), ''))
-    klembord.set_with_rich_text(txt, ''.join(html_text))
-    return "break"  # prevent class binding to be triggered
-
-text.bind('<Control-c>', copy_rich_text)
+from htmldocx import HtmlToDocx
+from docx import Document
+from docx.shared import Pt
+#from docx.enum.text import WD_LINE_SPACING
 
 
-# ------------------------------------- SANTA CATARINA ----------------------------------
 
 # load file, sheet
-wb = load_workbook('processos_sc.xlsx')
+wb = load_workbook('processos_final_ordenado.xlsx')
 ws = wb.active
-
-
-# formatting excel sheet
-for i in range(0,2):
-    ws.delete_rows(1)
-
-for i in range(0,3):
-    ws.delete_cols(7)
 
 
 # row number variable
@@ -88,78 +35,35 @@ max_rows = ws.max_row
 
 # append list variables
 processos = []
-tipo = []
-classe = []
-autores = []
-reus = []
+cliente = []
+adversa = []
 cidade = []
-assunto = []
 
 # copy num processos
 for i in range(1,max_rows+1):
     processos.append(ws.cell(row = i, column = 1).value)
 
-# copy classe
+# copy cliente
 for i in range(1,max_rows+1):
-    tipo.append(ws.cell(row = i, column = 2).value)
+    cliente.append(ws.cell(row = i, column = 2).value)
 
-# copy autores
+# copy parte adversa
 for i in range(1,max_rows+1):
-    autores.append(ws.cell(row = i, column = 3).value)
-
-# copy reu(s)
-for i in range(1,max_rows+1):
-    reus.append(ws.cell(row = i, column = 4).value)
+    adversa.append(ws.cell(row = i, column = 3).value)
 
 # copy cidade
 for i in range(1,max_rows+1):
-    cidade.append(ws.cell(row = i, column = 5).value)
-
-# copy assunto 
-for i in range(1,max_rows+1):
-    assunto.append(ws.cell(row = i, column = 6).value)
+    cidade.append(ws.cell(row = i, column = 4).value)
 
 
 # append lists
-numero_id = []
 numero_processo = []
-
-# get numero_id
-for i in range(0,max_rows):
-    numero_id.append(processos[i])
-
-numero_id = [x[21:25] for x in numero_id]
-
-
 
 # get numero_processo
 for i in range(0,max_rows):
     numero_processo.append(processos[i])
 
 numero_processo = [x[:25] for x in numero_processo]
-
-pesquisa_processo = ""
-
-
-#pesquisa = input(pesquisa_processo)
-
-#print(pesquisa)
-
-#index = numero_processo.index(pesquisa)
-
-index = 5
-print(index)
-
-
-
-estado = "SC"
-vara = "1"
-header = "EXMO. SR. DR. JUIZ DE DIREITO DA {}ª VARA CÍVEL DA COMARCA DE {}/{}.\n \n \n \n".format(vara, cidade[index].upper(), estado)
-autos = "Autos nº {}\n \n".format(numero_processo[index])
-reu_final = "Réu: {}\n \n".format(reus[index])
-classe = "Ação: {}\n \n \n".format(tipo[index])
-nossa_parte = "{}".format(autores[index])
-texto = ", vem respeitosamente à presença de Vossa Excelência através de seu procurador que esta subscreve, expor e requerer o que segue: \n \n \n \n \n"
 
 
 diadehoje = date.today().strftime("%d/%m/%Y")
@@ -173,24 +77,242 @@ mes = int(mes)
 mes = meses_extenso[mes-1]
 
 
-data = "Nestes termos\nPede deferimento.\nMafra, {} de {} de 20{}.\n \n".format(dia, mes, ano)
 
-nome = "MÁRCIO MAGNABOSCO DA SILVA\n OAB/SC 9738 – OAB/PR 20962"
+root = Tk()
+
+def insert_input():
+    def is_peticao(index):
+        text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. DR. JUIZ DE DIREITO DA _&ordf; VARA C&Iacute;VEL DA COMARCA DE {}/SC.</span></strong></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><strong>Autos n&ordm; {}</strong></span></p>
+        <p><span style="font-size: 16.5px;"><strong>Parte adversa:</strong> {}</span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>{}</strong>, vem respeitosamente &agrave; presen&ccedil;a de Vossa Excel&ecirc;ncia atrav&eacute;s de seu procurador que esta subscreve, expor e requerer o que segue: </span></p>
+        <p style="text-align: justified;"><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"></span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Nestes termos,</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Pede deferimento.</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Mafra, {} de {} de 20{}.</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>M&Aacute;RCIO MAGNABOSCO DA SILVA</strong></span></p>
+        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 9.738 &ndash; OAB/PR 20.962</span><span style="font-size: 12px;">&nbsp;</span></strong></p>
+        <p style="text-align: center;"><br></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
+        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''.format(cidade[index].upper(), numero_processo[index], adversa[index], cliente[index], dia, mes, ano)
+
+        file = open("processo_atual_peticao.html","w")
+        file.write(text)
+        file.close()
+        local_path = os.getcwd()
+        html_file = local_path + '\\processo_atual_peticao.html'
+        docx_file = local_path + '\\documento_atual_peticao.docx'
+        new_parser = HtmlToDocx()
+        new_parser.parse_html_file(html_file, 'documento_atual_peticao')
+        
+        document = Document(docx_file)
+
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Times New Roman'
+        font.size = Pt(12)
+
+        for paragraph in document.paragraphs:
+            paragraph.style = document.styles['Normal']
+            paragraph.paragraph_format.space_after = Pt(0)
+            if 'Autos' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Nestes' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Pede' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Mafra' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+        for run in paragraph.runs:
+            run.font.size = Pt(12)
+
+        nome_documento = "Petição {}.docx".format(cliente[index])
+        if len(nome_documento) > 42:
+            nome_documento = nome_documento[:42] + ".docx"
+
+        document.save(nome_documento)
 
 
-text.insert("end",header,"center")
-text.insert("end",autos,"bold")
-text.insert("end",reu_final,"normal")
-text.insert("end",classe,"normal")
-text.insert("end",nossa_parte,"justified2")
-text.insert("end",texto,"justified")
-text.insert("end",data, "center2")
-text.insert("end",nome,"center")
+    def is_sentenca(index):
+        text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. JUIZ FEDERAL DA _&ordf; VARA FEDERAL DE PAPANDUVA &ndash; SE&Ccedil;&Atilde;O JUDICI&Aacute;RIA DE SANTA CATARINA</span></strong></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><strong>Autos n&ordm; 0000002-10.2005.8.24.0047</strong></span></p>
+        <p><strong>Cumprimento de Senten&ccedil;a</strong></p>
+        <hr>
+        <p><br></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>VALFERTIL MAQUINAS AGRICOLAS LTDA</strong>, ____________, atrav&eacute;s dos procuradores que a esta subscrevem, M&Aacute;RCIO MAGNABOSCO DA SILVA, advogado inscrito na Ordem dos Advogados do Brasil sob n&ordm; 9.738/SC e 20.962/PR e ALINE REWAY RUTHES, advogada inscrita na Ordem dos Advogados do Brasil sob n&ordm; 52.034/SC, com escrit&oacute;rio profissional na rua Felipe Schmidt, n&ordm; 354, conjunto n&ordm; 01, Mafra/SC, vem, respeitosamente perante Vossa Excel&ecirc;ncia, nos termos do art. 513 e seguintes do CPC, requerer</span></p>
+        <p><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: center; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>CUMPRIMENTO DE SENTEN&Ccedil;A</strong></span></p>
+        <p style="text-align: justified;"><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p style="text-align: justified; margin-left: 75px;">em face de</p>
+        <p><br></p>
+        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>VALFERTIL MAQUINAS AGRICOLAS LTDA</strong>, ____________ em raz&atilde;o dos fatos e fundamentos a seguir aduzidos:&nbsp;</span></p>
+        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p style="text-align: justified;">Consoante disp&otilde;e a decis&atilde;o exarada no evento __ dos autos supracitados, <em>in verbis:</em></p>
+        <p style="text-align: justified;"><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p><br></p>
+        <p style="text-align: justified; margin-left: 70px;">.,.,.,.,.,.,.,.,<span style="font-size: 16.5px;"><br></span></p>
+        <p><br></p>
+        <p style="text-align: justified; margin-left: 70px;">[...]<span style="font-size: 16.5px;"><br></span></p>
+        <p><br></p>
+        <p style="text-align: justified;">Assim, considerando os termos da senten&ccedil;a proferida, tem-se que o valor devido perfaz o montante atualizado de <u>R$ __.___,__ (_____ _____ ____ ___)</u>, sendo o montante atualizado de R$ __.___,__ referentes &agrave;s restitui&ccedil;&otilde;es dos valores retidos indevidamente e R$ __.___,__ referente aos danos morais arbitrados, conforme demonstrativos anexos.</p>
+        <br>
+        <p style="text-align: justified;">Isto posto, requer o cumprimento da sentença na forma da legislação vigente, no que toca aos valores e cálculos acima citados, com a intimação da requerida para, querendo, no prazo de 30 (trinta) dias, impugnar a presente execução (art. 535, <i>caput</i>, do CPC).</p>
+        <br>
+        <p style="text-align: justified;">	Transcorrido o prazo acima assinalado sem impugnação ou rejeitadas as arguições da executada, requer seja expedido mandado dirigido à União, na pessoa de seu representante, para pagamento da importância de R$ __.___,__ (____ ___ ____ ____), acrescida de juros e correção monetária (art. 535, § 3º, II, do CPCP), mediante RPV, assinalando o prazo de até 60 (sessenta) dias para pagamento. </p>
+        <br>
+        <p style="text-align: justified;">	Não havendo o pagamento, requer a realização de penhora via Sisbajud dos ativos financeiros eventualmente existentes em nome da executada. </p>
+        <br>
+        <p style="text-align: justified;">	Protesta, ainda, pela produção de todos os meios de prova em direito admitidos, em especial prova documental, pericial e testemunhal, cujo rol será oportunamente apresentado. </p>
+        <br>
+        <p style="text-align: justified;">	Por fim, pleiteia a condenação da requerida ao pagamento de eventuais custas e honorários advocatícios, eis que deu causa à presente. </p>
+        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
+        <p style="text-align: center;"><br></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Nestes termos,</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Pede deferimento.</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;">Mafra, 30 de janeiro de 2022.</span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>M&Aacute;RCIO MAGNABOSCO DA SILVA</strong></span></p>
+        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 9.738 &ndash; OAB/PR 20.962</span><span style="font-size: 12px;">&nbsp;</span></strong></p>
+        <p style="text-align: center;"><br></p>
+        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
+        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''
+        #.format(cidade[index].upper(), numero_processo[index], adversa[index], cliente[index], dia, mes, ano)
 
-#text.insert("1.0", "Author et al. (2012). The title of the article. ")
-#text.insert("end", "Journal Name", "italic")
-#text.insert("end", ", ")
-#text.insert("end", "2", "bold")
-#text.insert("end", "(599), 1–5.")
+        file = open("processo_atual_sentenca.html","w")
+        file.write(text)
+        file.close()
+        local_path = os.getcwd()
+        html_file = local_path + '\\processo_atual_sentenca.html'
+        docx_file = local_path + '\\documento_atual_sentenca.docx'
+        new_parser = HtmlToDocx()
+        new_parser.parse_html_file(html_file, 'documento_atual_sentenca')
+        
+        document = Document(docx_file)
+
+        style = document.styles['Normal']
+        font = style.font
+        font.name = 'Times New Roman'
+        font.size = Pt(12)
+
+        for paragraph in document.paragraphs:
+            paragraph.style = document.styles['Normal']
+            paragraph.paragraph_format.space_after = Pt(0)
+            if 'Autos' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Nestes' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Pede' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+            if 'Mafra' in paragraph.text:
+                paragraph.paragraph_format.space_after = Pt(1.5)
+        for run in paragraph.runs:
+            run.font.size = Pt(12)
+
+        nome_documento = "Cumprimento de Sentença {}.docx".format(cliente[index])
+        if len(nome_documento) > 42:
+            nome_documento = nome_documento[:42] + ".docx"
+
+        document.save(nome_documento)
+
+
+    def validateInput(num_processo):
+        peticao = var1.get()
+        sentenca = var2.get()
+        processo_atual = num_processo.get()
+        try:
+            index = numero_processo.index(processo_atual)
+        except:
+            if (peticao != 0 or sentenca != 0) and peticao != sentenca:
+                tk.messagebox.showerror(title="Erro", message="Processo não encontrado!") 
+        else:
+            if (peticao != 0 or sentenca != 0) and peticao != sentenca:
+                tk.messagebox.showinfo(title="Sucesso!", message="Arquivo gerado com sucesso!")
+
+        #root.attributes("-topmost", True) 
+        if peticao > 0 and sentenca > 0:
+            tk.messagebox.showwarning(title="Erro", message="Selecione uma opção por vez!")
+        if peticao == 0 and sentenca == 0:
+            tk.messagebox.showwarning(title="Erro", message="Selecione ao menos uma opção!") 
+        if peticao > 0 and sentenca == 0:
+            is_peticao(index)
+        if sentenca > 0 and peticao == 0:
+            is_sentenca(index)
+            
+        #top.destroy()
+        return processo_atual
+        
+    
+    top = tk.Toplevel(root)
+
+    # pop up close
+    def on_close_pop_up():
+        top.destroy()
+        #root.attributes("-topmost", True)
+    top.protocol("WM_DELETE_WINDOW", on_close_pop_up)
+
+    # center pop up window
+    def center_window_pop_up(width=360, height=150):
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = (screen_width/2) - (width/2)
+        y = (screen_height/2) - (height/2)
+        top.geometry('%dx%d+%d+%d' % (width, height, x, y))
+    center_window_pop_up(360, 150)
+
+    top.title("Gerador de Petição")
+    #top.attributes("-topmost", True)
+
+    tk.Label(top, text= "Insira o número do processo:",font=('Arial',9)).place(relx=0.5,rely=0.14,anchor=CENTER)
+
+    #num_processo label and text entry box
+    num_processo_label = Label(top, text="Processo Nº: ").place(relx=0.21,rely=0.35,anchor=CENTER)
+    num_processo = StringVar()
+    num_processo_entry = Entry(top, textvariable=num_processo).place(relx=0.6,rely=0.35,anchor=CENTER,width=200)
+
+
+    validateInput = partial(validateInput, num_processo)
+
+    var1 = IntVar()
+    Checkbutton(top, text="Petição", variable=var1).place(relx=0.2,rely=0.54,anchor=CENTER)
+    var2 = IntVar()
+    Checkbutton(top, text="Cumprimento de Sentença", variable=var2).place(relx=0.55,rely=0.54,anchor=CENTER)
+    #Button(top, text='Show', command=var_states).grid(row=4, sticky=W, pady=4)
+
+
+
+    #num_processo button
+    confirm_button = Button(top, text="Confirma", command=validateInput).place(relx=0.5,rely=0.79,anchor=CENTER,width=60) 
+   
+    # add RETURN key handler
+    def handler(e):
+        validateInput()
+    top.bind('<Return>', handler)
+
+insert_input()
+
+# Set Geometry
+root.geometry("860x640")
+
 
 root.mainloop()
+
+
+
