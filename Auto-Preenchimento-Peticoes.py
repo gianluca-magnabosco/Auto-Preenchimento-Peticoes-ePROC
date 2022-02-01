@@ -1,3 +1,4 @@
+from concurrent.futures import process
 import tkinter as tk
 import klembord
 import tkinter as tk
@@ -21,9 +22,12 @@ from datetime import date
 from htmldocx import HtmlToDocx
 from docx import Document
 from docx.shared import Pt
+import win32gui
+import win32con
+import time
 #from docx.enum.text import WD_LINE_SPACING
 
-
+local_path = os.getcwd()
 
 # load file, sheet
 wb = load_workbook('processos_final_ordenado.xlsx')
@@ -77,10 +81,80 @@ mes = int(mes)
 mes = meses_extenso[mes-1]
 
 
+# -------------------------------------------------------------------------------------------------------------------------------
+
+#### DEALING WITH ROOT SCREEN
+# center window
+def center_window(width=860,height=640):
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    x = (screen_width/2) - (width/2)
+    y = (screen_height/2) - (height/2)
+    root.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
 root = Tk()
+center_window(860, 640)
+bg = PhotoImage(file = "root_background2.png")
+background_label = tk.Label(root, image=bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
+root.resizable(False,False)
+
+
+# close program confirmation
+def on_closeroot():
+    close = messagebox.askokcancel("Confirmação", "Tem certeza que deseja fechar o programa?")
+    if close:
+        root.destroy()
+root.protocol("WM_DELETE_WINDOW", on_closeroot)
+
+
+
+
+
+
+# credits
+feitopor = tk.Label(text="Programa criado por: Gianluca Notari Magnabosco da Silva",font=('',7),bg="white")
+feitopor.pack()
+feitopor.place(relx=0.84, rely=0.98, anchor=CENTER)
+
+
+
+
+
+top_bg = PhotoImage(file = "top_background.png")
 
 def insert_input():
+    # MINIMIZE ROOT
+    root.wm_state('iconic')
+    # MAXIMIZE ROOT
+    #root.wm_state('normal')
+
+    #### DEALING WITH TOP (POP-UP) SCREEN
+    # background image
+    top = tk.Toplevel(root)
+    global top_bg
+    background_label = tk.Label(top, image=top_bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
+
+    # pop up close
+    def on_close_top():
+        top.destroy()
+        root.wm_state('normal')
+    top.protocol("WM_DELETE_WINDOW", on_close_top)
+
+    # center pop up window
+    def center_window_pop_up(width=360, height=150):
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = (screen_width/2) - (width/2)
+        y = (screen_height/2) - (height/2)
+        top.geometry('%dx%d+%d+%d' % (width, height, x, y))
+    center_window_pop_up(360, 150)
+
+    top.title("Gerador de Petição")
+    #top.attributes("-topmost", True)
+    #root.attributes("-topmost", False)
+    top.resizable(False,False)
+    tk.Label(top, text= "Insira o número do processo:",font=('Arial',9),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
+
     def is_peticao(index):
         text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. DR. JUIZ DE DIREITO DA _&ordf; VARA C&Iacute;VEL DA COMARCA DE {}/SC.</span></strong></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
@@ -142,6 +216,11 @@ def insert_input():
             nome_documento = nome_documento[:42] + ".docx"
 
         document.save(nome_documento)
+        documento = os.path.join(local_path, nome_documento)
+        os.startfile(documento)
+        #time.sleep(1)
+        #maximize = win32gui.GetForegroundWindow()
+        #win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
 
 
     def is_sentenca(index):
@@ -231,12 +310,34 @@ def insert_input():
             nome_documento = nome_documento[:42] + ".docx"
 
         document.save(nome_documento)
+        documento = os.path.join(local_path, nome_documento)
+        os.startfile(documento)
+        #time.sleep(1)
+        #maximize = win32gui.GetForegroundWindow()
+        #win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+
 
 
     def validateInput(num_processo):
-        peticao = var1.get()
-        sentenca = var2.get()
+        peticao = it_is_peticao.get()
+        sentenca = cumprimento_sentenca.get()
         processo_atual = num_processo.get()
+        
+        if len(processo_atual) == 20:
+            edit_num_processo = list(str(processo_atual))
+            edit_num_processo.insert(7, '-')
+            edit_num_processo.insert(10, '.')
+            edit_num_processo.insert(15, '.')
+            edit_num_processo.insert(17, '.')
+            edit_num_processo.insert(20, '.')
+            processo_atual = "".join(edit_num_processo)
+        if len(processo_atual) > 25:
+            tamanho = len(processo_atual)
+            edit_num_processo = list(str(processo_atual))
+            for i in range(25,tamanho):
+                edit_num_processo.pop()
+            processo_atual = "".join(edit_num_processo)
+        
         try:
             index = numero_processo.index(processo_atual)
         except:
@@ -246,7 +347,7 @@ def insert_input():
             if (peticao != 0 or sentenca != 0) and peticao != sentenca:
                 tk.messagebox.showinfo(title="Sucesso!", message="Arquivo gerado com sucesso!")
 
-        #root.attributes("-topmost", True) 
+
         if peticao > 0 and sentenca > 0:
             tk.messagebox.showwarning(title="Erro", message="Selecione uma opção por vez!")
         if peticao == 0 and sentenca == 0:
@@ -256,63 +357,58 @@ def insert_input():
         if sentenca > 0 and peticao == 0:
             is_sentenca(index)
             
-        #top.destroy()
         return processo_atual
-        
-    
-    top = tk.Toplevel(root)
 
-    # pop up close
-    def on_close_pop_up():
-        top.destroy()
-        #root.attributes("-topmost", True)
-    top.protocol("WM_DELETE_WINDOW", on_close_pop_up)
-
-    # center pop up window
-    def center_window_pop_up(width=360, height=150):
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        x = (screen_width/2) - (width/2)
-        y = (screen_height/2) - (height/2)
-        top.geometry('%dx%d+%d+%d' % (width, height, x, y))
-    center_window_pop_up(360, 150)
-
-    top.title("Gerador de Petição")
-    #top.attributes("-topmost", True)
-
-    tk.Label(top, text= "Insira o número do processo:",font=('Arial',9)).place(relx=0.5,rely=0.14,anchor=CENTER)
-
-    #num_processo label and text entry box
-    num_processo_label = Label(top, text="Processo Nº: ").place(relx=0.21,rely=0.35,anchor=CENTER)
+    #num_processo text entry box
     num_processo = StringVar()
-    num_processo_entry = Entry(top, textvariable=num_processo).place(relx=0.6,rely=0.35,anchor=CENTER,width=200)
+    num_processo_entry = Entry(top, textvariable=num_processo).place(relx=0.6,rely=0.36,anchor=CENTER,width=200)
 
 
-    validateInput = partial(validateInput, num_processo)
+    cumprimento_sentenca = IntVar()
+    tk.Checkbutton(top, variable=cumprimento_sentenca,bg='#cde3f1').place(relx=0.1486,rely=0.54,anchor=CENTER)
+    it_is_peticao = IntVar()
+    tk.Checkbutton(top, variable=it_is_peticao,bg='#cde3f1').place(relx=0.7,rely=0.54,anchor=CENTER)
 
-    var1 = IntVar()
-    Checkbutton(top, text="Petição", variable=var1).place(relx=0.2,rely=0.54,anchor=CENTER)
-    var2 = IntVar()
-    Checkbutton(top, text="Cumprimento de Sentença", variable=var2).place(relx=0.55,rely=0.54,anchor=CENTER)
-    #Button(top, text='Show', command=var_states).grid(row=4, sticky=W, pady=4)
-
-
+    validateInput = partial(validateInput, num_processo)        
 
     #num_processo button
-    confirm_button = Button(top, text="Confirma", command=validateInput).place(relx=0.5,rely=0.79,anchor=CENTER,width=60) 
-   
+    st = ttk.Style()
+    st.configure('W.TButton', background='#a3cae7', foreground='black', font=('Open Sans',9))
+    confirm_button = ttk.Button(top,style='W.TButton', text="Confirma", command=validateInput).place(relx=0.5,rely=0.79,anchor=CENTER,width=60) 
+        
     # add RETURN key handler
     def handler(e):
         validateInput()
     top.bind('<Return>', handler)
 
-insert_input()
 
-# Set Geometry
-root.geometry("860x640")
+
+
+# abrir pasta de petições
+def open_directory():
+    os.startfile(local_path)
+    time.sleep(1)
+    maximize = win32gui.GetForegroundWindow()
+    win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+
+st2 = Style()
+st2.configure('C.TButton', background='white', foreground='black', font=('Arial', 9))
+button1 = Button(root, style='C.TButton', text='Abrir',command=open_directory,width=27.75)
+button1.pack()
+button1.place(relx=0.29, rely=0.86, anchor=CENTER)
+
+
+
+# run code button
+st3 = Style()
+st3.configure('B.TButton', background='white', foreground='black', font=('Open Sans', 11))
+button2 = Button(root, style='B.TButton', text='Gerar petições',command=insert_input,width=27.75)
+button2.pack()
+button2.place(relx=0.525, rely=0.65, anchor=CENTER)
+
+
+
+insert_input()
 
 
 root.mainloop()
-
-
-
