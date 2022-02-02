@@ -25,9 +25,11 @@ from docx.shared import Pt
 import win32gui
 import win32con
 import time
+import pandas as pd
 #from docx.enum.text import WD_LINE_SPACING
 
 local_path = os.getcwd()
+
 
 # load file, sheet
 wb = load_workbook('processos_final_ordenado.xlsx')
@@ -94,7 +96,7 @@ def center_window(width=860,height=640):
 
 root = Tk()
 center_window(860, 640)
-bg = PhotoImage(file = "root_background2.png")
+bg = PhotoImage(file = "root_background.png")
 background_label = tk.Label(root, image=bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
 root.resizable(False,False)
 
@@ -108,15 +110,10 @@ root.protocol("WM_DELETE_WINDOW", on_closeroot)
 
 
 
-
-
-
 # credits
 feitopor = tk.Label(text="Programa criado por: Gianluca Notari Magnabosco da Silva",font=('',7),bg="white")
 feitopor.pack()
 feitopor.place(relx=0.84, rely=0.98, anchor=CENTER)
-
-
 
 
 
@@ -218,9 +215,9 @@ def insert_input():
         document.save(nome_documento)
         documento = os.path.join(local_path, nome_documento)
         os.startfile(documento)
-        #time.sleep(1)
-        #maximize = win32gui.GetForegroundWindow()
-        #win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+        time.sleep(2)
+        maximize = win32gui.GetForegroundWindow()
+        win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
 
 
     def is_sentenca(index):
@@ -387,25 +384,75 @@ def insert_input():
 # abrir pasta de petições
 def open_directory():
     os.startfile(local_path)
-    time.sleep(1)
+    time.sleep(2)
     maximize = win32gui.GetForegroundWindow()
     win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
 
+# abrir planilha de processos
+def open_sheet():
+    wb = load_workbook('processos_final_ordenado.xlsx')
+    ws = wb.active
+    ws.insert_rows(1)
+    cabecalho = ['Num. Processo', 'Cliente', 'Parte Adversa', 'Cidade']
+    for col in range(0,4):
+        char = chr(65 + col)
+        ws[char + '1'] = cabecalho[col]
+    wb.save('processos_final_ordenado.xlsx')
+    ########################################### formatar/reformatar excel (header)
+    path_planilha = 'processos_final_ordenado.xlsx'
+    planilha = os.path.join(local_path, path_planilha)
+    os.startfile(planilha)
+    time.sleep(2)
+    maximize = win32gui.GetForegroundWindow()
+    win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+
+
+
+def order_excel():
+    xl = pd.ExcelFile('processos_final_ordenado.xlsx')
+    df = xl.parse("Sheet1", header=None)
+    df = df.sort_values(df.columns[0])
+    writer = pd.ExcelWriter('processos_final_ordenado.xlsx')
+    df.to_excel(writer, index=False, header=False)
+    writer.save()
+    ########################################### fazer função para ordenar tabela de excel
+    df2 = pd.DataFrame()
+    df2 = pd.read_excel('processos_final_ordenado.xlsx', header=None, usecols=[0,1,2,3], names=['0','1','2','3'])
+    df2.drop(df2.index[df2['3'] == 'Cidade'], inplace=True)
+    df2.to_excel(writer, index=False, header=False)
+    writer.save()
+
+    
+
+# open directory button
 st2 = Style()
-st2.configure('C.TButton', background='white', foreground='black', font=('Arial', 9))
-button1 = Button(root, style='C.TButton', text='Abrir',command=open_directory,width=27.75)
+st2.configure('B.TButton', background='white', foreground='black', font=('Arial', 9))
+button1 = Button(root, style='B.TButton', text='Abrir',command=open_directory,width=27.75)
 button1.pack()
-button1.place(relx=0.29, rely=0.86, anchor=CENTER)
+button1.place(relx=0.27, rely=0.85, anchor=CENTER)
+
+# open sheet button
+st3 = Style()
+st3.configure('C.TButton', background='white', foreground='black', font=('Helvetica', 9))
+button2 = Button(root, style='C.TButton', text='Abrir',command=open_sheet,width=27.75)
+button2.pack()
+button2.place(relx=0.82, rely=0.42, anchor=CENTER)
+
+# order excel button
+st4 = Style()
+st4.configure('D.TButton', background='white', foreground='black', font=('Helvetica', 9))
+button3 = Button(root, style='D.TButton', text='Ordenar',command=order_excel,width=27.75)
+button3.pack()
+button3.place(relx=0.816, rely=0.737, anchor=CENTER)
 
 
 
 # run code button
-st3 = Style()
-st3.configure('B.TButton', background='white', foreground='black', font=('Open Sans', 11))
-button2 = Button(root, style='B.TButton', text='Gerar petições',command=insert_input,width=27.75)
-button2.pack()
-button2.place(relx=0.525, rely=0.65, anchor=CENTER)
-
+st5 = Style()
+st5.configure('E.TButton', background='white', foreground='black', font=('Helvetica', 12))
+button4 = Button(root, style='E.TButton', text='Gerar Petições',command=insert_input,width=27.75)
+button4.pack()
+button4.place(relx=0.46, rely=0.665, anchor=CENTER)
 
 
 insert_input()
