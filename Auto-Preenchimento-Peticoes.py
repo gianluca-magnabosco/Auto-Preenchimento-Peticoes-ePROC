@@ -152,7 +152,11 @@ def insert_input():
     top.resizable(False,False)
     tk.Label(top, text= "Insira o número do processo:",font=('Arial',9),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
 
+
     def is_peticao(index):
+        ######################## adicionar validação
+        is_cliente = cliente[index]
+        is_adversa = adversa[index] 
         text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. DR. JUIZ DE DIREITO DA _&ordf; VARA C&Iacute;VEL DA COMARCA DE {}/SC.</span></strong></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
         <p><span style="font-size: 16.5px;"><br></span></p>
@@ -221,6 +225,9 @@ def insert_input():
 
 
     def is_sentenca(index):
+        ################################# aqui validaçao
+        is_cliente = cliente[index]
+        is_adversa = adversa[index]
         text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. JUIZ FEDERAL DA _&ordf; VARA FEDERAL DE PAPANDUVA &ndash; SE&Ccedil;&Atilde;O JUDICI&Aacute;RIA DE SANTA CATARINA</span></strong></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
         <p><span style="font-size: 16.5px;"><br></span></p>
