@@ -1,7 +1,7 @@
 from concurrent.futures import process
+from operator import index
 import tkinter as tk
 import klembord
-import tkinter as tk
 from tkinter import *
 from tkinter import messagebox
 from tkinter.font import BOLD
@@ -26,9 +26,12 @@ import win32gui
 import win32con
 import time
 import pandas as pd
-#from docx.enum.text import WD_LINE_SPACING
+import psycopg2
 
+
+cliente_final = ''
 local_path = os.getcwd()
+
 
 
 # load file, sheet
@@ -118,6 +121,8 @@ feitopor.place(relx=0.84, rely=0.98, anchor=CENTER)
 
 
 top_bg = PhotoImage(file = "top_background.png")
+alterar_top_bg = PhotoImage(file = "alterar_top_background.png")
+
 
 def insert_input():
     # MINIMIZE ROOT
@@ -153,6 +158,13 @@ def insert_input():
     tk.Label(top, text= "Insira o número do processo:",font=('Arial',9),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
 
     def is_peticao(index):
+        cidade_final = cidade[index]
+        num_processo_final = numero_processo[index]
+
+
+
+
+
         text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. DR. JUIZ DE DIREITO DA _&ordf; VARA C&Iacute;VEL DA COMARCA DE {}/SC.</span></strong></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
         <p><span style="font-size: 16.5px;"><br></span></p>
@@ -176,7 +188,7 @@ def insert_input():
         <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 9.738 &ndash; OAB/PR 20.962</span><span style="font-size: 12px;">&nbsp;</span></strong></p>
         <p style="text-align: center;"><br></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
-        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''.format(cidade[index].upper(), numero_processo[index], adversa[index], cliente[index], dia, mes, ano)
+        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''.format(cidade_final.upper(), num_processo_final, adversa_final, cliente_final, dia, mes, ano)
 
         file = open("processo_atual_peticao.html","w")
         file.write(text)
@@ -208,7 +220,7 @@ def insert_input():
         for run in paragraph.runs:
             run.font.size = Pt(12)
 
-        nome_documento = "Petição {}.docx".format(cliente[index])
+        nome_documento = "Petição {}.docx".format(cliente_final)
         if len(nome_documento) > 42:
             nome_documento = nome_documento[:42] + ".docx"
 
@@ -221,6 +233,12 @@ def insert_input():
 
 
     def is_sentenca(index):
+        cidade_final = cidade[index]
+        num_processo_final = numero_processo[index]
+
+
+
+
         text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. JUIZ FEDERAL DA _&ordf; VARA FEDERAL DE PAPANDUVA &ndash; SE&Ccedil;&Atilde;O JUDICI&Aacute;RIA DE SANTA CATARINA</span></strong></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
         <p><span style="font-size: 16.5px;"><br></span></p>
@@ -270,7 +288,7 @@ def insert_input():
         <p style="text-align: center;"><br></p>
         <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
         <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''
-        #.format(cidade[index].upper(), numero_processo[index], adversa[index], cliente[index], dia, mes, ano)
+        #.format(cidade_final.upper(), num_processo_final, adversa_final, cliente_final, dia, mes, ano)
 
         file = open("processo_atual_sentenca.html","w")
         file.write(text)
@@ -302,7 +320,7 @@ def insert_input():
         for run in paragraph.runs:
             run.font.size = Pt(12)
 
-        nome_documento = "Cumprimento de Sentença {}.docx".format(cliente[index])
+        nome_documento = "Cumprimento de Sentença {}.docx".format(cliente_final)
         if len(nome_documento) > 42:
             nome_documento = nome_documento[:42] + ".docx"
 
@@ -335,6 +353,9 @@ def insert_input():
                 edit_num_processo.pop()
             processo_atual = "".join(edit_num_processo)
         
+            
+
+
         try:
             index = numero_processo.index(processo_atual)
         except:
@@ -342,7 +363,90 @@ def insert_input():
                 tk.messagebox.showerror(title="Erro", message="Processo não encontrado!") 
         else:
             if (peticao != 0 or sentenca != 0) and peticao != sentenca:
+                cliente_temp = cliente[index]
+                adversa_temp = adversa[index]
+
+                
+                # establish connection to postgres database
+                pg = psycopg2.connect(
+                host = "localhost",
+                database = "Processos",
+                user = "postgres",
+                password = "")
+
+
+                # set cursor
+                query = pg.cursor()
+                # sample queries
+                query.execute("""SELECT num_processo FROM processos WHERE num_processo = '{}' """.format(processo_atual))
+                # fetch all queries and show
+                processo_db = query.fetchall()
+                global cliente_final
+                global adversa_final
+                # if list does not have content (query returns false), do something
+                if not processo_db:
+                    is_cliente = tk.messagebox.askyesnocancel(title="Processo nº {}".format(processo_atual), message="{} é seu cliente nesse processo?".format(cliente_temp))
+                    if is_cliente:
+                        cliente_final = cliente_temp
+
+                        adversa_final = adversa_temp
+
+                    if not is_cliente:
+                        cliente_final = adversa_temp
+
+                        adversa_final = cliente_temp
+
+
+                    query.execute("INSERT INTO processos (num_processo, cliente, parte_adversa, cidade) values ('{}', '{}', '{}', '{}')".format(numero_processo[index], cliente_final, adversa_final, cidade[index]))
+
+
+
+
+
+
+                    
+                    # commit changes to db
+                    pg.commit()
+
+                    # close cursor to db
+                    query.close()
+
+
+                if processo_db:
+                    # set cursor
+                    query = pg.cursor()
+                    # sample queries
+                    query.execute("""SELECT * FROM processos WHERE num_processo = '{}' """.format(processo_atual))
+                    
+                    list = query.fetchall()
+
+                    cliente_final = list[0][1]
+                    adversa_final = list[0][2]
+
+                    print(list[0][1], list[0][2])
+
+                    # commit changes to db
+                    pg.commit()
+
+                    # close cursor to db
+                    query.close()
+
+                
+                
+                # close connection to db
+                pg.close()
                 tk.messagebox.showinfo(title="Sucesso!", message="Arquivo gerado com sucesso!")
+
+
+
+
+
+
+
+
+
+
+ 
 
 
         if peticao > 0 and sentenca > 0:
@@ -377,10 +481,8 @@ def insert_input():
     def handler(e):
         validateInput()
     top.bind('<Return>', handler)
-
-
-
-
+    
+  
 # abrir pasta de petições
 def open_directory():
     os.startfile(local_path)
@@ -388,23 +490,179 @@ def open_directory():
     maximize = win32gui.GetForegroundWindow()
     win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
 
+
+
+
+
+
+
 # abrir planilha de processos
-def open_sheet():
-    wb = load_workbook('processos_final_ordenado.xlsx')
-    ws = wb.active
-    ws.insert_rows(1)
-    cabecalho = ['Num. Processo', 'Cliente', 'Parte Adversa', 'Cidade']
-    for col in range(0,4):
-        char = chr(65 + col)
-        ws[char + '1'] = cabecalho[col]
-    wb.save('processos_final_ordenado.xlsx')
-    ########################################### formatar/reformatar excel (header)
-    path_planilha = 'processos_final_ordenado.xlsx'
-    planilha = os.path.join(local_path, path_planilha)
-    os.startfile(planilha)
-    time.sleep(2)
-    maximize = win32gui.GetForegroundWindow()
-    win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+def alterar_cliente():
+    root.wm_state('iconic')
+
+    def validateInput2(num_processo2):
+        alterar_top.attributes("-topmost", False)
+        processo_atual = num_processo2.get()
+        
+        if len(processo_atual) == 20:
+            edit_num_processo = list(str(processo_atual))
+            edit_num_processo.insert(7, '-')
+            edit_num_processo.insert(10, '.')
+            edit_num_processo.insert(15, '.')
+            edit_num_processo.insert(17, '.')
+            edit_num_processo.insert(20, '.')
+            processo_atual = "".join(edit_num_processo)
+        if len(processo_atual) > 25:
+            tamanho = len(processo_atual)
+            edit_num_processo = list(str(processo_atual))
+            for i in range(25,tamanho):
+                edit_num_processo.pop()
+            processo_atual = "".join(edit_num_processo)
+        
+            
+
+        # establish connection to postgres database
+        pg = psycopg2.connect(
+        host = "localhost",
+        database = "Processos",
+        user = "postgres",
+        password = "6d4u9c54ge")
+
+
+        # set cursor
+        query = pg.cursor()
+        
+        try:
+            query.execute("""SELECT num_processo FROM processos WHERE num_processo = '{}' """.format(processo_atual))
+            exists = query.fetchall()
+            index = numero_processo.index(processo_atual)
+            
+            #teste = exists[0][0]
+
+        except:
+            tk.messagebox.showerror(title="Erro", message="Processo não encontrado!") 
+            alterar_top.attributes("-topmost", True)
+        else:
+
+            try:
+                teste = exists[0][0]
+            except:
+                tk.messagebox.showwarning(title="Erro", message="Processo não consta no banco de dados!\nGere um arquivo com este número de processo para adicioná-lo ao banco de dados!")
+                alterar_top.attributes("-topmost", True)
+            else:
+                # sample queries
+                query.execute("""SELECT * FROM processos WHERE num_processo = '{}' """.format(processo_atual))
+            
+                # fetch all queries and assign
+                processo_db = query.fetchall()
+                cliente_atual = processo_db[0][1]
+                parte_adversa_atual = processo_db[0][2]
+                
+                
+                if processo_db:
+                    is_cliente = tk.messagebox.askyesno(title="Processo nº {}".format(processo_atual), message="{} é seu cliente nesse processo?".format(cliente_atual))
+                    
+                    if not is_cliente:
+                        query.execute("UPDATE processos SET cliente = '{}' WHERE num_processo = '{}'".format(parte_adversa_atual, processo_atual))
+                        query.execute("UPDATE processos SET parte_adversa = '{}' WHERE num_processo = '{}'".format(cliente_atual, processo_atual))
+                        tk.messagebox.showinfo(title="Sucesso!", message="Processo atualizado com sucesso!")
+                        
+                    # commit changes to db
+                    pg.commit()
+
+                    # close cursor to db
+                    query.close()
+                    
+                    # close connection to db
+                    pg.close()
+
+                    if is_cliente:
+                        tk.messagebox.showerror(title="Nada foi alterado", message="Nada foi atualizado!")
+
+                on_close_alterar_top()
+
+
+
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+################################# FAZER BOTAO PRA ADICIONAR NOVOS PROCESSOS #################################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+#############################################
+
+
+    alterar_top = tk.Toplevel(root)
+    global alterar_top_bg
+    background_label = tk.Label(alterar_top, image=alterar_top_bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
+
+    # pop up close
+    def on_close_alterar_top():
+        alterar_top.destroy()
+        root.attributes("-topmost", True)
+        root.wm_state('normal')
+    alterar_top.protocol("WM_DELETE_WINDOW", on_close_alterar_top)
+
+    # center pop up window
+    def center_window_pop_up(width=360, height=150):
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = (screen_width/2) - (width/2)
+        y = (screen_height/2) - (height/2)
+        alterar_top.geometry('%dx%d+%d+%d' % (width, height, x, y))
+    center_window_pop_up(360, 150)
+
+    alterar_top.title("Alterar cliente")
+    #top.attributes("-topmost", True)
+    #root.attributes("-topmost", False)
+    alterar_top.resizable(False,False)
+    tk.Label(alterar_top, text= "Insira o número do processo que deseja alterar:",font=('Arial',9),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
+
+    num_processo2 = StringVar()
+    num_processo2_entry = Entry(alterar_top, textvariable=num_processo2).place(relx=0.6,rely=0.36,anchor=CENTER,width=200)
+
+    validateInput2 = partial(validateInput2, num_processo2) 
+    
+    #num_processo button
+    st = ttk.Style()
+    st.configure('W.TButton', background='#a3cae7', foreground='black', font=('Open Sans',9))
+    confirm_button = ttk.Button(alterar_top,style='W.TButton', text="Confirma", command=validateInput2).place(relx=0.5,rely=0.79,anchor=CENTER,width=60) 
+        
+
+   
+    # add RETURN key handler
+    def handler(e):
+        validateInput2()
+    alterar_top.bind('<Return>', handler)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -434,7 +692,7 @@ button1.place(relx=0.27, rely=0.85, anchor=CENTER)
 # open sheet button
 st3 = Style()
 st3.configure('C.TButton', background='white', foreground='black', font=('Helvetica', 9))
-button2 = Button(root, style='C.TButton', text='Abrir',command=open_sheet,width=27.75)
+button2 = Button(root, style='C.TButton', text='Alterar',command=alterar_cliente,width=27.75)
 button2.pack()
 button2.place(relx=0.82, rely=0.42, anchor=CENTER)
 
@@ -459,3 +717,4 @@ insert_input()
 
 
 root.mainloop()
+
