@@ -526,7 +526,7 @@ def alterar_cliente():
         host = "localhost",
         database = "Processos",
         user = "postgres",
-        password = "6d4u9c54ge")
+        password = "")
 
 
         # set cursor
