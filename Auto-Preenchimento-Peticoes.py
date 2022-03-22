@@ -19,15 +19,15 @@ from win32com.client import Dispatch
 from functools import partial
 import datetime
 from datetime import date
-from htmldocx import HtmlToDocx
-from docx import Document
-from docx.shared import Pt
 import win32gui
 import win32con
 import time
 import pandas as pd
 import psycopg2
-
+import docx
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.shared import Inches, Pt
 
 cliente_final = ''
 local_path = os.getcwd()
@@ -98,10 +98,13 @@ def center_window(width=860,height=640):
     root.geometry('%dx%d+%d+%d' % (width, height, x, y))
 
 root = Tk()
+root.title("Auto Peticionamento")
 center_window(860, 640)
 bg = PhotoImage(file = "root_background.png")
 background_label = tk.Label(root, image=bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
 root.resizable(False,False)
+iconFile = 'icone.ico'
+root.iconbitmap(default=iconFile)
 
 
 # close program confirmation
@@ -122,7 +125,7 @@ feitopor.place(relx=0.84, rely=0.98, anchor=CENTER)
 
 top_bg = PhotoImage(file = "top_background.png")
 alterar_top_bg = PhotoImage(file = "alterar_top_background.png")
-
+adicionar_top_bg = PhotoImage(file = "adicionar_top_background.png")
 
 def insert_input():
     # MINIMIZE ROOT
@@ -161,56 +164,141 @@ def insert_input():
         cidade_final = cidade[index]
         num_processo_final = numero_processo[index]
 
+        #### PETIÇÃO INICIAL
+
+        document = Document()
+
+        # TITULO
+        p = document.add_paragraph()
+        p.add_run("EXMO. SR. DR. JUIZ DE DIREITO DA _ª VARA CÍVEL DA COMARCA DE {}/SC".format(cidade_final.upper())).bold = True
+
+        p_format = p.paragraph_format
+
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+
+        # AUTOS
+        p = document.add_paragraph()
+        p.add_run("Autos nº: {}".format(num_processo_final)).bold = True
+        p.paragraph_format.line_spacing_rule = 0
+
+
+        # PARTE ADVERSA
+        p = document.add_paragraph()
+        p.add_run("Parte adversa: ").bold = True
+        p.add_run("{}".format(adversa_final).title())
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
 
 
 
 
-        text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. DR. JUIZ DE DIREITO DA _&ordf; VARA C&Iacute;VEL DA COMARCA DE {}/SC.</span></strong></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><strong>Autos n&ordm; {}</strong></span></p>
-        <p><span style="font-size: 16.5px;"><strong>Parte adversa:</strong> {}</span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>{}</strong>, vem respeitosamente &agrave; presen&ccedil;a de Vossa Excel&ecirc;ncia atrav&eacute;s de seu procurador que esta subscreve, expor e requerer o que segue: </span></p>
-        <p style="text-align: justified;"><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"></span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Nestes termos,</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Pede deferimento.</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Mafra, {} de {} de 20{}.</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>M&Aacute;RCIO MAGNABOSCO DA SILVA</strong></span></p>
-        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 9.738 &ndash; OAB/PR 20.962</span><span style="font-size: 12px;">&nbsp;</span></strong></p>
-        <p style="text-align: center;"><br></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
-        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''.format(cidade_final.upper(), num_processo_final, adversa_final, cliente_final, dia, mes, ano)
+        # CLIENTE
+        p = document.add_paragraph()
+        p.add_run("{}, ".format(cliente_final)).bold = True
+        p.add_run("vem respeitosamente à presença de Vossa Excelência através de seu procurador que esta subscreve, expor e requerer o que segue: ")
 
-        file = open("processo_atual_peticao.html","w")
-        file.write(text)
-        file.close()
-        local_path = os.getcwd()
-        html_file = local_path + '\\processo_atual_peticao.html'
-        docx_file = local_path + '\\documento_atual_peticao.docx'
-        new_parser = HtmlToDocx()
-        new_parser.parse_html_file(html_file, 'documento_atual_peticao')
-        
-        document = Document(docx_file)
 
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.left_indent = Inches(1.5)
+
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p_format.line_spacing_rule = 0
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+
+        # TERMOS
+        p = document.add_paragraph("Nestes termos,")
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # DEFERIMENTO
+        p = document.add_paragraph("Pede deferimento.")
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # DIA DE HOJE
+        p = document.add_paragraph("Mafra, {} de {} de 20{}.". format(dia, mes, ano))
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+
+        # FOOTER MARCIO
+        p = document.add_paragraph()
+        p.add_run("MÁRCIO MAGNABOSCO DA SILVA").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # FOOTER OAB MARCIO
+        p = document.add_paragraph()
+        p.add_run("OAB/SC 9.738 – OAB/PR 20.962").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+        # FOOTER ALINE
+        p = document.add_paragraph()
+        p.add_run("ALINE REWAY RUTHES").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # FOOTER OAB ALINE
+        p = document.add_paragraph()
+        p.add_run("OAB/SC 52.034").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+
+        # AJEITANDO ESTILO
         style = document.styles['Normal']
         font = style.font
         font.name = 'Times New Roman'
         font.size = Pt(12)
 
+
         for paragraph in document.paragraphs:
             paragraph.style = document.styles['Normal']
             paragraph.paragraph_format.space_after = Pt(0)
-            if 'Autos' in paragraph.text:
-                paragraph.paragraph_format.space_after = Pt(1.5)
             if 'Nestes' in paragraph.text:
                 paragraph.paragraph_format.space_after = Pt(1.5)
             if 'Pede' in paragraph.text:
@@ -219,6 +307,8 @@ def insert_input():
                 paragraph.paragraph_format.space_after = Pt(1.5)
         for run in paragraph.runs:
             run.font.size = Pt(12)
+
+
 
         nome_documento = "Petição {}.docx".format(cliente_final)
         if len(nome_documento) > 42:
@@ -238,79 +328,305 @@ def insert_input():
 
 
 
+        #### CUMPRIMENTO DE SENTENÇA
 
-        text = '''<p style="text-align: center;"><strong><span style="font-size: 16.5px;">EXMO. SR. JUIZ FEDERAL DA _&ordf; VARA FEDERAL DE PAPANDUVA &ndash; SE&Ccedil;&Atilde;O JUDICI&Aacute;RIA DE SANTA CATARINA</span></strong></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><strong>Autos n&ordm; 0000002-10.2005.8.24.0047</strong></span></p>
-        <p><strong>Cumprimento de Senten&ccedil;a</strong></p>
-        <hr>
-        <p><br></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>VALFERTIL MAQUINAS AGRICOLAS LTDA</strong>, ____________, atrav&eacute;s dos procuradores que a esta subscrevem, M&Aacute;RCIO MAGNABOSCO DA SILVA, advogado inscrito na Ordem dos Advogados do Brasil sob n&ordm; 9.738/SC e 20.962/PR e ALINE REWAY RUTHES, advogada inscrita na Ordem dos Advogados do Brasil sob n&ordm; 52.034/SC, com escrit&oacute;rio profissional na rua Felipe Schmidt, n&ordm; 354, conjunto n&ordm; 01, Mafra/SC, vem, respeitosamente perante Vossa Excel&ecirc;ncia, nos termos do art. 513 e seguintes do CPC, requerer</span></p>
-        <p><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: center; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>CUMPRIMENTO DE SENTEN&Ccedil;A</strong></span></p>
-        <p style="text-align: justified;"><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p style="text-align: justified; margin-left: 75px;">em face de</p>
-        <p><br></p>
-        <p style="text-align: justified; margin-left: 70px;"><span style="font-size: 16.5px;"><strong>VALFERTIL MAQUINAS AGRICOLAS LTDA</strong>, ____________ em raz&atilde;o dos fatos e fundamentos a seguir aduzidos:&nbsp;</span></p>
-        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p style="text-align: justified;">Consoante disp&otilde;e a decis&atilde;o exarada no evento __ dos autos supracitados, <em>in verbis:</em></p>
-        <p style="text-align: justified;"><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p><br></p>
-        <p style="text-align: justified; margin-left: 70px;">.,.,.,.,.,.,.,.,<span style="font-size: 16.5px;"><br></span></p>
-        <p><br></p>
-        <p style="text-align: justified; margin-left: 70px;">[...]<span style="font-size: 16.5px;"><br></span></p>
-        <p><br></p>
-        <p style="text-align: justified;">Assim, considerando os termos da senten&ccedil;a proferida, tem-se que o valor devido perfaz o montante atualizado de <u>R$ __.___,__ (_____ _____ ____ ___)</u>, sendo o montante atualizado de R$ __.___,__ referentes &agrave;s restitui&ccedil;&otilde;es dos valores retidos indevidamente e R$ __.___,__ referente aos danos morais arbitrados, conforme demonstrativos anexos.</p>
-        <br>
-        <p style="text-align: justified;">Isto posto, requer o cumprimento da sentença na forma da legislação vigente, no que toca aos valores e cálculos acima citados, com a intimação da requerida para, querendo, no prazo de 30 (trinta) dias, impugnar a presente execução (art. 535, <i>caput</i>, do CPC).</p>
-        <br>
-        <p style="text-align: justified;">	Transcorrido o prazo acima assinalado sem impugnação ou rejeitadas as arguições da executada, requer seja expedido mandado dirigido à União, na pessoa de seu representante, para pagamento da importância de R$ __.___,__ (____ ___ ____ ____), acrescida de juros e correção monetária (art. 535, § 3º, II, do CPCP), mediante RPV, assinalando o prazo de até 60 (sessenta) dias para pagamento. </p>
-        <br>
-        <p style="text-align: justified;">	Não havendo o pagamento, requer a realização de penhora via Sisbajud dos ativos financeiros eventualmente existentes em nome da executada. </p>
-        <br>
-        <p style="text-align: justified;">	Protesta, ainda, pela produção de todos os meios de prova em direito admitidos, em especial prova documental, pericial e testemunhal, cujo rol será oportunamente apresentado. </p>
-        <br>
-        <p style="text-align: justified;">	Por fim, pleiteia a condenação da requerida ao pagamento de eventuais custas e honorários advocatícios, eis que deu causa à presente. </p>
-        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p><strong><span style="font-size: 16.5px;"><br></span></strong></p>
-        <p style="text-align: center;"><br></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Nestes termos,</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Pede deferimento.</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;">Mafra, 30 de janeiro de 2022.</span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><br></span></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>M&Aacute;RCIO MAGNABOSCO DA SILVA</strong></span></p>
-        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 9.738 &ndash; OAB/PR 20.962</span><span style="font-size: 12px;">&nbsp;</span></strong></p>
-        <p style="text-align: center;"><br></p>
-        <p style="text-align: center;"><span style="font-size: 16.5px;"><strong>ALINE REWAY RUTHES</strong></span></p>
-        <p style="text-align: center;"><strong><span style="font-size: 16.5px;">OAB/SC 52.034</span></strong></p>'''
-        #.format(cidade_final.upper(), num_processo_final, adversa_final, cliente_final, dia, mes, ano)
+        document = Document()
 
-        file = open("processo_atual_sentenca.html","w")
-        file.write(text)
-        file.close()
-        local_path = os.getcwd()
-        html_file = local_path + '\\processo_atual_sentenca.html'
-        docx_file = local_path + '\\documento_atual_sentenca.docx'
-        new_parser = HtmlToDocx()
-        new_parser.parse_html_file(html_file, 'documento_atual_sentenca')
-        
-        document = Document(docx_file)
 
+        # TITULO
+        p = document.add_paragraph()
+        p.add_run("EXMO. SR. JUIZ FEDERAL DA _ª VARA FEDERAL DE {} - SEÇÃO JUDICIÁRIA DE SANTA CATARINA".format(cidade_final.upper())).bold = True
+
+        p_format = p.paragraph_format
+
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+
+        # AUTOS
+        p = document.add_paragraph()
+        p.add_run("Autos nº: {}".format(num_processo_final)).bold = True
+        p.paragraph_format.line_spacing_rule = 0
+
+
+        # CUMPR SENTENÇA
+        p = document.add_paragraph()
+        p.add_run("Cumprimento de Sentença").bold = True
+        p.paragraph_format.line_spacing_rule = 0
+
+
+        p = document.add_paragraph()
+        p.add_run("_______________________________").bold = True
+        p.paragraph_format.line_spacing_rule = 0
+
+        run = p.add_run()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+        # CLIENTE
+        p = document.add_paragraph()
+        p.add_run("{}, ".format(cliente_final)).bold = True
+        p.add_run("____________, através dos procuradores que a esta subscrevem, MÁRCIO MAGNABOSCO DA SILVA, advogado inscrito na Ordem dos Advogados do Brasil sob nº 9.738/SC e 20.962/PR e ALINE REWAY RUTHES, advogada inscrita na Ordem dos Advogados do Brasil sob nº 52.034/SC, com escritório profissional na rua Felipe Schmidt, nº 354, conjunto nº 01, Mafra/SC, vem, respeitosamente perante Vossa Excelência, nos termos do art. 513 e seguintes do CPC, requerer")
+
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.25)
+        p_format.left_indent = Inches(1.5)
+
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p_format.line_spacing_rule = 0
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+
+        # CUMPR SENTENÇA
+        p = document.add_paragraph()
+        p.add_run("CUMPRIMENTO DE SENTENÇA").bold = True
+
+        p_format = p.paragraph_format
+        p_format.left_indent = Inches(1.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+        # EM FACE DE
+        p = document.add_paragraph("em face de")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.1)
+        p_format.left_indent = Inches(1.5)
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+        # PARTE ADVERSA
+        p = document.add_paragraph()
+        p.add_run("{}, ".format(adversa_final)).bold = True
+        p.add_run("______ em razão dos fatos e fundamentos a seguir aduzidos: ")
+
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.25)
+        p_format.left_indent = Inches(1.5)
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+
+        # CONSOANTE DISPÕE
+        p = document.add_paragraph("Consoante dispõe a decisão exarada no evento __ dos autos supracitados, ")
+        p.add_run("in verbis: ").italic = True
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+        # COMPLEMENTO 1
+        p = document.add_paragraph(".,.,.,.,.,.,.,.,")
+        p_format = p.paragraph_format
+        p_format.left_indent = Inches(1.5)
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # COMPLEMENTO 2
+        p = document.add_paragraph("    [...]")
+        p_format = p.paragraph_format
+        p_format.left_indent = Inches(1.5)
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+        # ASSIM, CONSIDERANDO OS TERMOS
+        p = document.add_paragraph("Assim, considerando os termos da sentença proferida, tem-se que o valor devido perfaz o montante atualizado de ")
+        p.add_run("R$ ---.---,--- (----- ----- ----- ----)").underline = True
+        p.add_run(", sendo o montante atualizado de R$ __.___,__ referentes às restituições dos valores retidos indevidamente e R$ __.___,__ referente aos danos morais arbitrados, conforme demonstrativos anexos.")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # ISTO POSTO
+        p = document.add_paragraph("Isto posto, requer o cumprimento da sentença na forma da legislação vigente, no que toca aos valores e cálculos acima citados, com a intimação da requerida para, querendo, no prazo de 30 (trinta) dias, impugnar a presente execução (art. 535, ")
+        p.add_run("caput").italic = True
+        p.add_run(", do CPC).")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # TRANSCORRIDO
+        p = document.add_paragraph("Transcorrido o prazo acima assinalado sem impugnação ou rejeitadas as arguições da executada, requer seja expedido mandado dirigido à União, na pessoa de seu representante, para pagamento da importância de R$ __.___,__ (____ ___ ____ ____), acrescida de juros e correção monetária (art. 535, § 3º, II, do CPCP), mediante RPV, assinalando o prazo de até 60 (sessenta) dias para pagamento.")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # NAO HAVENDO PAGAMENTO
+        p = document.add_paragraph("Não havendo o pagamento, requer a realização de penhora via Sisbajud dos ativos financeiros eventualmente existentes em nome da executada.")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # PROTESTA
+        p = document.add_paragraph("Protesta, ainda, pela produção de todos os meios de prova em direito admitidos, em especial prova documental, pericial e testemunhal, cujo rol será oportunamente apresentado.")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+
+
+        # POR FIM
+        p = document.add_paragraph("Por fim, pleiteia a condenação da requerida ao pagamento de eventuais custas e honorários advocatícios, eis que deu causa à presente.")
+
+        p_format = p.paragraph_format
+        p_format.first_line_indent = Inches(0.5)
+        p_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+        run.add_break()
+        run.add_break()
+
+
+        # TERMOS
+        p = document.add_paragraph("Nestes termos,")
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # DEFERIMENTO
+        p = document.add_paragraph("Pede deferimento.")
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # DIA DE HOJE
+        p = document.add_paragraph("Mafra, {} de {} de 20{}.". format(dia, mes, ano))
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+
+        # FOOTER MARCIO
+        p = document.add_paragraph()
+        p.add_run("MÁRCIO MAGNABOSCO DA SILVA").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # FOOTER OAB MARCIO
+        p = document.add_paragraph()
+        p.add_run("OAB/SC 9.738 – OAB/PR 20.962").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        run = p.add_run()
+
+        run.add_break()
+        run.add_break()
+
+
+        # FOOTER ALINE
+        p = document.add_paragraph()
+        p.add_run("ALINE REWAY RUTHES").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # FOOTER OAB ALINE
+        p = document.add_paragraph()
+        p.add_run("OAB/SC 52.034").bold = True
+
+        p_format = p.paragraph_format
+        p_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+
+        # AJEITANDO ESTILO
         style = document.styles['Normal']
         font = style.font
         font.name = 'Times New Roman'
         font.size = Pt(12)
 
+
         for paragraph in document.paragraphs:
             paragraph.style = document.styles['Normal']
             paragraph.paragraph_format.space_after = Pt(0)
-            if 'Autos' in paragraph.text:
-                paragraph.paragraph_format.space_after = Pt(1.5)
             if 'Nestes' in paragraph.text:
                 paragraph.paragraph_format.space_after = Pt(1.5)
             if 'Pede' in paragraph.text:
@@ -320,6 +636,7 @@ def insert_input():
         for run in paragraph.runs:
             run.font.size = Pt(12)
 
+
         nome_documento = "Cumprimento de Sentença {}.docx".format(cliente_final)
         if len(nome_documento) > 42:
             nome_documento = nome_documento[:42] + ".docx"
@@ -327,9 +644,9 @@ def insert_input():
         document.save(nome_documento)
         documento = os.path.join(local_path, nome_documento)
         os.startfile(documento)
-        #time.sleep(1)
-        #maximize = win32gui.GetForegroundWindow()
-        #win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
+        time.sleep(2)
+        maximize = win32gui.GetForegroundWindow()
+        win32gui.ShowWindow(maximize, win32con.SW_MAXIMIZE)
 
 
 
@@ -440,15 +757,6 @@ def insert_input():
 
 
 
-
-
-
-
-
-
- 
-
-
         if peticao > 0 and sentenca > 0:
             tk.messagebox.showwarning(title="Erro", message="Selecione uma opção por vez!")
         if peticao == 0 and sentenca == 0:
@@ -483,6 +791,9 @@ def insert_input():
     top.bind('<Return>', handler)
     
   
+
+
+
 # abrir pasta de petições
 def open_directory():
     os.startfile(local_path)
@@ -492,11 +803,7 @@ def open_directory():
 
 
 
-
-
-
-
-# abrir planilha de processos
+# alterar cliente
 def alterar_cliente():
     root.wm_state('iconic')
 
@@ -582,25 +889,6 @@ def alterar_cliente():
                 on_close_alterar_top()
 
 
-
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-################################# FAZER BOTAO PRA ADICIONAR NOVOS PROCESSOS #################################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-#############################################
-
-
     alterar_top = tk.Toplevel(root)
     global alterar_top_bg
     background_label = tk.Label(alterar_top, image=alterar_top_bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
@@ -619,7 +907,7 @@ def alterar_cliente():
         x = (screen_width/2) - (width/2)
         y = (screen_height/2) - (height/2)
         alterar_top.geometry('%dx%d+%d+%d' % (width, height, x, y))
-    center_window_pop_up(360, 150)
+    center_window_pop_up(340, 115)
 
     alterar_top.title("Alterar cliente")
     #top.attributes("-topmost", True)
@@ -628,7 +916,7 @@ def alterar_cliente():
     tk.Label(alterar_top, text= "Insira o número do processo que deseja alterar:",font=('Arial',9),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
 
     num_processo2 = StringVar()
-    num_processo2_entry = Entry(alterar_top, textvariable=num_processo2).place(relx=0.6,rely=0.36,anchor=CENTER,width=200)
+    num_processo2_entry = Entry(alterar_top, textvariable=num_processo2).place(relx=0.66,rely=0.49,anchor=CENTER,width=200)
 
     validateInput2 = partial(validateInput2, num_processo2) 
     
@@ -646,39 +934,121 @@ def alterar_cliente():
 
 
 
+def adicionar_processo():
+    root.wm_state('iconic')
+
+    def validateInput3(num_processo2, cliente_input, adversa_input, cidade_input):
+        adicionar_top.attributes("-topmost", False)
+        
+        processo_atual = num_processo2.get()
+        cliente = cliente_input.get()
+        adversa = adversa_input.get()
+        cidade = cidade_input.get()
+        
+        if len(processo_atual) == 20:
+            edit_num_processo = list(str(processo_atual))
+            edit_num_processo.insert(7, '-')
+            edit_num_processo.insert(10, '.')
+            edit_num_processo.insert(15, '.')
+            edit_num_processo.insert(17, '.')
+            edit_num_processo.insert(20, '.')
+            processo_atual = "".join(edit_num_processo)
+        if len(processo_atual) > 25:
+            tamanho = len(processo_atual)
+            edit_num_processo = list(str(processo_atual))
+            for i in range(25,tamanho):
+                edit_num_processo.pop()
+            processo_atual = "".join(edit_num_processo)
+        
+            
+
+        # establish connection to postgres database
+        pg = psycopg2.connect(
+        host = "localhost",
+        database = "Processos",
+        user = "postgres",
+        password = "")
 
 
+        # set cursor
+        query = pg.cursor()
+        
+        try: 
+            query.execute("INSERT INTO processos(num_processo, cliente, parte_adversa, cidade) VALUES ('{}', '{}', '{}', '{}')".format(processo_atual, cliente, adversa, cidade))
+        except:
+            tk.messagebox.showwarning(title="Erro", message="Erro!\nTente novamente")
+            adicionar_top.attributes("-topmost", True)           
+        else: 
+            tk.messagebox.showinfo(title="Sucesso!", message="Processo adicionado com sucesso!")                
+
+                
+
+                        
+        # commit changes to db
+        pg.commit()
+
+        # close cursor to db
+        query.close()
+        
+        # close connection to db
+        pg.close()
+
+        on_close_adicionar_top()
 
 
+    adicionar_top = tk.Toplevel(root)
+    global adicionar_top_bg
+    background_label = tk.Label(adicionar_top, image=adicionar_top_bg,bg='white').place(relx=0.5,rely=0.5,anchor=CENTER)
+
+    # pop up close
+    def on_close_adicionar_top():
+        adicionar_top.destroy()
+        root.attributes("-topmost", True)
+        root.wm_state('normal')
+    adicionar_top.protocol("WM_DELETE_WINDOW", on_close_adicionar_top)
+
+    # center pop up window
+    def center_window_pop_up(width, height):
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = (screen_width/2) - (width/2)
+        y = (screen_height/2) - (height/2)
+        adicionar_top.geometry('%dx%d+%d+%d' % (width, height, x, y))
+    center_window_pop_up(520, 250)
+
+    adicionar_top.title("Adicionar processo")
+    #top.attributes("-topmost", True)
+    #root.attributes("-topmost", False)
+    adicionar_top.resizable(False,False)
+    tk.Label(adicionar_top, text= "Insira os dados referentes ao processo que deseja inserir:",font=('Arial',12, BOLD),bg='white').place(relx=0.5,rely=0.14,anchor=CENTER)
+
+    num_processo2 = StringVar()
+    num_processo2_entry = Entry(adicionar_top, textvariable=num_processo2).place(relx=0.54,rely=0.33,anchor=CENTER,width=251)
+    
+    cliente_input = StringVar()
+    cliente_input_entry = Entry(adicionar_top, textvariable = cliente_input).place(relx=0.51, rely=0.48, anchor=CENTER, width=285)
+
+    adversa_input = StringVar()
+    adversa_input_entry = Entry(adicionar_top, textvariable = adversa_input).place(relx=0.52, rely=0.63, anchor=CENTER, width=277)
+
+    cidade_input = StringVar()
+    cidade_input_entry = Entry(adicionar_top, textvariable = cidade_input).place(relx=0.51, rely=0.79, anchor=CENTER, width=285)
 
 
+    validateInput3 = partial(validateInput3, num_processo2, cliente_input, adversa_input, cidade_input) 
+    
+    #num_processo button
+    st = ttk.Style()
+    st.configure('W.TButton', background='#a3cae7', foreground='black', font=('Open Sans',9))
+    confirm_button = ttk.Button(adicionar_top, style='W.TButton', text="Confirma", command=validateInput3).place(relx=0.5,rely=0.93,anchor=CENTER,width=60) 
+        
 
+   
+    # add RETURN key handler
+    def handler(e):
+        validateInput3()
+    adicionar_top.bind('<Return>', handler)
 
-
-
-
-
-
-
-
-
-
-
-
-
-def order_excel():
-    xl = pd.ExcelFile('processos_final_ordenado.xlsx')
-    df = xl.parse("Sheet1", header=None)
-    df = df.sort_values(df.columns[0])
-    writer = pd.ExcelWriter('processos_final_ordenado.xlsx')
-    df.to_excel(writer, index=False, header=False)
-    writer.save()
-    ########################################### fazer função para ordenar tabela de excel
-    df2 = pd.DataFrame()
-    df2 = pd.read_excel('processos_final_ordenado.xlsx', header=None, usecols=[0,1,2,3], names=['0','1','2','3'])
-    df2.drop(df2.index[df2['3'] == 'Cidade'], inplace=True)
-    df2.to_excel(writer, index=False, header=False)
-    writer.save()
 
     
 
@@ -689,19 +1059,19 @@ button1 = Button(root, style='B.TButton', text='Abrir',command=open_directory,wi
 button1.pack()
 button1.place(relx=0.27, rely=0.85, anchor=CENTER)
 
-# open sheet button
+# modify client button
 st3 = Style()
 st3.configure('C.TButton', background='white', foreground='black', font=('Helvetica', 9))
 button2 = Button(root, style='C.TButton', text='Alterar',command=alterar_cliente,width=27.75)
 button2.pack()
-button2.place(relx=0.82, rely=0.42, anchor=CENTER)
+button2.place(relx=0.83, rely=0.44, anchor=CENTER)
 
 # order excel button
 st4 = Style()
 st4.configure('D.TButton', background='white', foreground='black', font=('Helvetica', 9))
-button3 = Button(root, style='D.TButton', text='Ordenar',command=order_excel,width=27.75)
+button3 = Button(root, style='D.TButton', text='Adicionar',command=adicionar_processo,width=27.75)
 button3.pack()
-button3.place(relx=0.816, rely=0.737, anchor=CENTER)
+button3.place(relx=0.81, rely=0.73, anchor=CENTER)
 
 
 
@@ -717,4 +1087,3 @@ insert_input()
 
 
 root.mainloop()
-
